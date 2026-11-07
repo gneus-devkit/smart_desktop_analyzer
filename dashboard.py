@@ -182,17 +182,17 @@ def display_file_age(data):
     for age_range, count in age_results["age_counts"].items():
         print(f"{age_range:<25} {count:>8} files")
         
-        print("=" * 55)
+    print("=" * 55)
         
-        print((
-            "Files at least 180 days old: "
-            f"{age_results["old_file_count"]}"
-        ))
+    print((
+        "Files at least 180 days old: "
+        f"{age_results["old_file_count"]}"
+    ))
         
-        print(
-            "Large old files (100 MB+): "
-            f"{len(age_results["large_old_files"]):,}"
-        )
+    print(
+        "Large old files (100 MB+): "
+        f"{len(age_results["large_old_files"]):,}"
+    )
         
     print("\nOLDEST FILES")
     print("=" * 55)
