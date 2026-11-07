@@ -15,10 +15,13 @@ def make_json_serializable(data):
     if isinstance(data, datetime):
         return data.isoformat()
     
+    if isinstance(data, Path):
+        return str(data)
+    
     if isinstance(data, dict):
         return {key: make_json_serializable(value) for key, value in data.items()}
     
-    if isinstance(data, list):
+    if isinstance(data, (list, tuple)):
         return [make_json_serializable(item) for item in data]
 
     return data
@@ -41,7 +44,7 @@ def export_json(results, age_results, duplicates, recommendations):
     }
     
     with report_path.open("w", encoding="utf-8") as json_file:
-        json.dump(report_data, json_file, indent=4)
+        json.dump(make_json_serializable(report_data), json_file, indent=4)
     
     print(f"JSON report saved to {report_path.resolve()}")
     
