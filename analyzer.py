@@ -1,3 +1,5 @@
+from pathlib import Path
+
 FILE_CATEGORIES = {
     "Images": [
         ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp", ".ico"
@@ -31,7 +33,10 @@ def categorize_files(extension):
         
 def analyze_files(files):
     total_size = 0
+    
     extension_counts = {}
+    extension_sizes = {}
+    
     category_counts = {}
     category_sizes = {}
     
@@ -42,6 +47,7 @@ def analyze_files(files):
         total_size += size
         
         extension_counts[extension] = extension_counts.get(extension, 0) + 1
+        extension_sizes[extension] = extension_sizes.get(extension, 0) + size
         
         category = categorize_files(extension)
         
@@ -59,8 +65,52 @@ def analyze_files(files):
         "total_size": total_size,
         "average_size": average_size,
         "extension_counts": extension_counts,
+        "extension_sizes": extension_sizes,
         "category_counts": category_counts,
         "category_sizes": category_sizes,
         "largest_files": largest_files,
         "smallest_files": smallest_files
     }
+    
+def analyze_directory_usage(files, root_directory, limit=20):
+    """Aggregate file storage by top-level directory"""
+    
+    root = Path(root_directory).resolve()
+    directory_stats = {}
+    
+    for file in files:
+        file_path = Path(file["path"])
+        
+        try:
+            relative_path = file_path.relative_to(root)
+        except ValueError:
+            continue
+        
+        if len(relative_path.parts) == 1:
+            directory_name = "[root]"
+        else:
+            directory_name = relative_path.parts[0]
+            
+        if directory_name not in directory_stats:
+            directory_stats[directory_name] = {
+                "file_count": 0,
+                "total_size": 0,
+            }
+            
+        directory_stats[directory_name]["file_count"] += 1
+        directory_stats[directory_name]["total_size"] += file["size"]
+        
+    ranked_directories = sorted(
+        directory_stats.items(),
+        key=lambda item: item[1]["total_size"],
+        reverse=True,
+    )
+    
+    return [
+        {
+            "directory": name,
+            "file_count": stats["file_count"],
+            "total_size": stats["total_size"],
+        }
+        for name, stats in ranked_directories[:limit]
+    ]

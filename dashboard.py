@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from scanner import scan_directory
-from analyzer import analyze_files
+from analyzer import analyze_files, analyze_directory_usage
 from duplicate_finder import find_duplicates
 from age_analyzer import analyze_file_age
 from recommendations import generate_recommendations
@@ -44,6 +44,7 @@ def display_menu():
         "7": "View storage recommendations",
         "8": "Export records",
         "9": "Change scan directory",
+        "10": "View directory storage analysis",
         "0": "Exit"
     }
     
@@ -52,7 +53,7 @@ def display_menu():
         
     print("=" * 55)
     
-    choice = input("\nSelect an option (0-9): ").strip()
+    choice = input("\nSelect an option (0-10): ").strip()
     
     if not choice:
         print("\nNo selection entered. Please enter a number.")
@@ -73,6 +74,7 @@ def run_scan(directory):
     print("Analyzing files...")
     
     results = analyze_files(files)
+    directory_usage = analyze_directory_usage(files, directory)
     
     print(("Checking for duplicates..."))
     duplicates = find_duplicates(files)
@@ -90,7 +92,8 @@ def run_scan(directory):
         "results": results,
         "duplicates": duplicates,
         "age_results": age_results,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "directory_usage": directory_usage,
     }
     
 def display_storage_overview(data):
@@ -116,16 +119,48 @@ def display_categories(data):
     print("\n" + ("=" * 55))
     print("FILE CATEGORIES".center(55))
     print("=" * 55)
+    print(
+        f"{"Category":<20}"
+        f"{"Files":>12}"
+        f"{"Storage":>18}"
+    )
     
     for category, count in sorted(results["category_counts"].items()):
         size = results["category_sizes"].get(category, 0)
         
         print(
             f"{category:<20} "
-            f"{count:>6,} files    "
-            f"{format_bytes(size):>12}"
+            f"{count:>12,} files    "
+            f"{format_bytes(size):>19}"
         )
         
+    print("\n" + ("=" * 55))
+    print("STORAGE BREAKDOWN BY EXTENSION".center(55)) 
+    print("=" * 55)
+    
+    print(
+        f"{"Extension":<20}"
+        f"{"Files":>12}"
+        f"{"Storage":>18}"
+    )
+    
+    print("-" * 55)
+    
+    extension_counts = results["extension_counts"]
+    extension_sizes = results["extension_sizes"]
+    
+    sorted_extensions = sorted(extension_sizes.items(), key=lambda item: item[1], reverse=True)
+    
+    for extension, size in sorted_extensions:
+        count = extension_counts.get(extension, 0)
+        
+        display_extension = extension if extension else "[no extension]"
+    
+        print(
+            f"{display_extension:<20}"
+            f"{count:>12,}"
+            f"{format_bytes(size):>18}"
+        )
     print("=" * 55)
     
 def display_largest_files(data):
@@ -232,6 +267,48 @@ def display_recommendations(data):
         print(f"Size: {format_bytes(item["size"])}")
         print(f"Details: {item["message"]}")
         print(f"Path: {item["path"]}")
+        
+def display_directory_usage(data):
+    """Display storage usage by top-level directory."""
+
+    directory_usage = data[["directory_usage"]]
+    total_size = data["results"]["total_size"]
+    
+    print("\n" + ("=" * 70))
+    
+    print("DIRCTORY STORAGE ANALYSIS".center(70))
+    
+    if not directory_usage:
+        print(
+            f"{"Directory":<30}"
+            f"{"Files":>12}"
+            f"{"Storage":>16}"
+            f"{"Share":>10}"
+        )
+        
+        print("-" * 70)
+        
+    for item in directory_usage:
+        size = item["total_size"]
+        
+        percentage = (
+            size / total_size * 100
+            if total_size
+            else 0
+        )
+        
+        print(
+            f"{item["directory"][:29]:<30}"
+            f"{item["file_count"]:>12,}"
+            f"{format_bytes(size):>16}"
+            f"{percentage:>9.1f}%"
+        )
+        
+    print("=" * 70)
+    print(
+        f"Showing {len(directory_usage)} largest "
+        "top-kevek directories"
+    )
         
 def export_reports(data):
     """Export JSON and CSV reports."""
@@ -356,6 +433,15 @@ def run_dashboard():
                 else:
                     print("\nInvalid directory. Directory was not changed.")
                     
+                pause()
+                
+            elif choice == "10":
+                
+                if data == None:
+                    print("\nPlease scan a directory first.")
+                else:
+                    display_directory_usage(data)
+                
                 pause()
                 
             elif choice == "0":
